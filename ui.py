@@ -19,33 +19,47 @@ class App(ctk.CTk):
 		main = ctk.CTkFrame(self, corner_radius=0, fg_color="#020617")
 		main.pack(fill="both", expand=True)
 		main.grid_columnconfigure(0, weight=3)
-		main.grid_columnconfigure(1, weight=2)
+		main.grid_columnconfigure(1, weight=1)
 		main.grid_rowconfigure(2, weight=1)
 
 		self.vars = {}
 
-		titulo = ctk.CTkLabel(main, text="Calculadora de Custo de Bolos", font=("Segoe UI", 22, "bold"))
-		titulo.grid(row=0, column=0, columnspan=2, sticky="w", pady=(20, 10), padx=24)
+		# Estilos
+		font_title = ("Segoe UI", 24, "bold")
+		font_subtitle = ("Segoe UI", 14)
+		font_section = ("Segoe UI", 18, "bold")
+		font_label = ("Segoe UI", 14)
+		font_value = ("Segoe UI", 14)
+		font_result_label = ("Segoe UI", 14)
+		font_result_value = ("Segoe UI", 16, "bold")
+
+		titulo = ctk.CTkLabel(main, text="Calculadora de Custo de Bolos", font=font_title)
+		titulo.grid(row=0, column=0, columnspan=2, sticky="w", pady=(20, 5), padx=24)
 
 		descricao = ctk.CTkLabel(main, text="Organize ingredientes e veja custo, preço e lucro do bolo.",
-				       font=("Segoe UI", 12))
+				       font=font_subtitle, text_color="gray70")
 		descricao.grid(row=1, column=0, columnspan=2, sticky="w", padx=24, pady=(0, 20))
 
 		container_ingredientes = ctk.CTkFrame(main, corner_radius=16, fg_color="#0b1220")
 		container_ingredientes.grid(row=2, column=0, sticky="nsew", pady=(0, 16), padx=(24, 12))
 		container_ingredientes.grid_rowconfigure(0, weight=1)
 		container_ingredientes.grid_columnconfigure(0, weight=1)
+		
 		canvas = ctk.CTkCanvas(container_ingredientes, highlightthickness=0, bg="#0b1220")
 		canvas.grid(row=0, column=0, sticky="nsew")
+		
 		barra_scroll = ctk.CTkScrollbar(container_ingredientes, orientation="vertical", command=canvas.yview)
 		barra_scroll.grid(row=0, column=1, sticky="ns")
 		canvas.configure(yscrollcommand=barra_scroll.set)
+		
 		bloco_ingredientes = ctk.CTkFrame(canvas, corner_radius=16, fg_color="#0b1220")
 		canvas.create_window((0, 0), window=bloco_ingredientes, anchor="nw")
 		bloco_ingredientes.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+		
 		def _on_mousewheel(ev):
 			canvas.yview_scroll(int(-1 * (ev.delta / 120)), "units")
 		canvas.bind_all("<MouseWheel>", _on_mousewheel)
+		
 		bloco_ingredientes.grid_columnconfigure(0, weight=1)
 		bloco_ingredientes.grid_columnconfigure(1, weight=1)
 		bloco_ingredientes.grid_columnconfigure(2, weight=1)
@@ -56,61 +70,60 @@ class App(ctk.CTk):
 
 		bloco_resumo = ctk.CTkFrame(main, corner_radius=16, fg_color="#0b1220")
 		bloco_resumo.grid(row=2, column=1, sticky="nsew", padx=(12, 24), pady=(0, 16))
+		bloco_resumo.grid_columnconfigure(1, weight=1)
 
-		resumo_titulo = ctk.CTkLabel(bloco_resumo, text="Resumo e Venda", font=("Segoe UI", 16, "bold"))
-		resumo_titulo.grid(row=0, column=0, columnspan=2, sticky="w", pady=(16, 8), padx=16)
+		resumo_titulo = ctk.CTkLabel(bloco_resumo, text="Resumo e Venda", font=font_section)
+		resumo_titulo.grid(row=0, column=0, columnspan=2, sticky="w", pady=(20, 15), padx=20)
 
 		campos_resumo = [
-			("Topper", "topper"),
-			("Mão de obra (V.hora)", "hora"),
-			("Custo fixo", "fixo"),
-			("Margem lucro %", "margem"),
+			("Topper", "topper", "R$ 0.00"),
+			("Mão de obra (V.hora)", "hora", "R$ 0.00"),
+			("Custo fixo", "fixo", "R$ 0.00"),
+			("Margem lucro %", "margem", "50%"),
 		]
 
-		for i, (label, key) in enumerate(campos_resumo, start=1):
-			ctk.CTkLabel(bloco_resumo, text=label).grid(row=i, column=0, sticky="w", pady=6, padx=16)
+		for i, (label, key, placeholder) in enumerate(campos_resumo, start=1):
+			ctk.CTkLabel(bloco_resumo, text=label, font=font_label).grid(row=i, column=0, sticky="w", pady=8, padx=20)
 			var = ctk.StringVar()
-			entry = ctk.CTkEntry(bloco_resumo, textvariable=var, width=200)
-			entry.grid(row=i, column=1, sticky="w", pady=6, padx=(0, 16))
+			entry = ctk.CTkEntry(bloco_resumo, textvariable=var, placeholder_text=placeholder, font=font_value)
+			entry.grid(row=i, column=1, sticky="ew", pady=8, padx=(0, 20))
 			self.vars[key] = var
 
-		botao_calcular = ctk.CTkButton(bloco_resumo, text="Calcular", command=self.calcular,
-					      height=40)
-		botao_calcular.grid(row=len(campos_resumo) + 1, column=0, columnspan=2, pady=14, padx=16, sticky="ew")
+		botao_calcular = ctk.CTkButton(bloco_resumo, text="CALCULAR", command=self.calcular,
+					      height=45, font=("Segoe UI", 15, "bold"), fg_color="#2563eb", hover_color="#1d4ed8")
+		botao_calcular.grid(row=len(campos_resumo) + 1, column=0, columnspan=2, pady=25, padx=20, sticky="ew")
 
-		self.result_custo = ctk.StringVar()
-		self.result_valor_bolo = ctk.StringVar()
-		self.result_preco_venda = ctk.StringVar()
-		self.result_lucro = ctk.StringVar()
+		self.result_custo = ctk.StringVar(value="R$ 0.00")
+		self.result_valor_bolo = ctk.StringVar(value="R$ 0.00")
+		self.result_preco_venda = ctk.StringVar(value="R$ 0.00")
+		self.result_lucro = ctk.StringVar(value="R$ 0.00")
 
 		row_base = len(campos_resumo) + 2
-		ctk.CTkLabel(bloco_resumo, text="Custo ingredientes + fixos:").grid(
-			row=row_base, column=0, sticky="w", pady=4, padx=16
-		)
-		ctk.CTkLabel(bloco_resumo, textvariable=self.result_custo).grid(
-			row=row_base, column=1, sticky="w"
-		)
+		
+		# Separator
+		ctk.CTkFrame(bloco_resumo, height=2, fg_color="gray30").grid(row=row_base, column=0, columnspan=2, sticky="ew", padx=20, pady=(0, 15))
+		row_base += 1
 
-		ctk.CTkLabel(bloco_resumo, text="Valor bolo (custo total):").grid(
-			row=row_base + 1, column=0, sticky="w", pady=4, padx=16
-		)
-		ctk.CTkLabel(bloco_resumo, textvariable=self.result_valor_bolo).grid(
-			row=row_base + 1, column=1, sticky="w"
-		)
+		def add_result_row(label_text, var, row, highlight=False):
+			font_l = font_result_label
+			font_v = font_result_value
+			color = "white"
+			if highlight:
+				font_l = ("Segoe UI", 15, "bold")
+				font_v = ("Segoe UI", 18, "bold")
+				color = "#4ade80" # Greenish
 
-		ctk.CTkLabel(bloco_resumo, text="Preço de venda sugerido:").grid(
-			row=row_base + 2, column=0, sticky="w", pady=4, padx=16
-		)
-		ctk.CTkLabel(bloco_resumo, textvariable=self.result_preco_venda).grid(
-			row=row_base + 2, column=1, sticky="w"
-		)
+			ctk.CTkLabel(bloco_resumo, text=label_text, font=font_l).grid(
+				row=row, column=0, sticky="w", pady=4, padx=20
+			)
+			ctk.CTkLabel(bloco_resumo, textvariable=var, font=font_v, text_color=color).grid(
+				row=row, column=1, sticky="e", padx=20
+			)
 
-		ctk.CTkLabel(bloco_resumo, text="Lucro estimado:").grid(
-			row=row_base + 3, column=0, sticky="w", pady=4, padx=16
-		)
-		ctk.CTkLabel(bloco_resumo, textvariable=self.result_lucro).grid(
-			row=row_base + 3, column=1, sticky="w"
-		)
+		add_result_row("Custo ingredientes + fixos:", self.result_custo, row_base)
+		add_result_row("Valor bolo (custo total):", self.result_valor_bolo, row_base + 1)
+		add_result_row("Preço de venda sugerido:", self.result_preco_venda, row_base + 2, highlight=True)
+		add_result_row("Lucro estimado:", self.result_lucro, row_base + 3, highlight=True)
 
 	def _centralizar_janela(self):
 		self.update_idletasks()
@@ -133,20 +146,20 @@ class App(ctk.CTk):
 			coluna = 0
 		frame.grid(row=linha, column=coluna, padx=12, pady=8, sticky="nsew")
 
-		titulo_label = ctk.CTkLabel(frame, text=titulo, font=("Segoe UI", 14, "bold"))
+		titulo_label = ctk.CTkLabel(frame, text=titulo, font=("Segoe UI", 16, "bold"))
 		titulo_label.grid(row=0, column=0, columnspan=3, sticky="w", pady=(10, 4), padx=12)
 
-		ctk.CTkLabel(frame, text="Ingrediente").grid(row=1, column=0, padx=12, pady=(0, 2))
-		ctk.CTkLabel(frame, text="Valor").grid(row=1, column=1, padx=12, pady=(0, 2))
-		ctk.CTkLabel(frame, text="").grid(row=1, column=2, padx=4, pady=(0, 2))
+		ctk.CTkLabel(frame, text="Ingrediente", font=("Segoe UI", 12)).grid(row=1, column=0, sticky="w", padx=12, pady=(0, 2))
+		ctk.CTkLabel(frame, text="Valor (R$)", font=("Segoe UI", 12)).grid(row=1, column=1, sticky="w", padx=12, pady=(0, 2))
+		
 		self.vars[f"{prefixo}_frame"] = frame
 		self.vars[f"{prefixo}_itens"] = []
 		self.vars[f"{prefixo}_linha"] = 2
 
-		total_var = ctk.StringVar()
+		total_var = ctk.StringVar(value="R$ 0.00")
 		self.vars[prefixo] = total_var
-		ctk.CTkLabel(frame, text="Total").grid(row=100, column=0, sticky="e", pady=(4, 10), padx=12)
-		ctk.CTkLabel(frame, textvariable=total_var).grid(row=100, column=1, sticky="w", pady=(4, 10))
+		ctk.CTkLabel(frame, text="Total", font=("Segoe UI", 12, "bold")).grid(row=100, column=0, sticky="e", pady=(8, 10), padx=12)
+		ctk.CTkLabel(frame, textvariable=total_var, font=("Segoe UI", 12, "bold"), text_color="#4ade80").grid(row=100, column=1, sticky="w", pady=(8, 10), padx=12)
 
 		for _ in range(4):
 			self._add_item(prefixo)
@@ -203,19 +216,22 @@ class App(ctk.CTk):
 				widget.destroy()
 		nome_var = ctk.StringVar()
 		valor_var = ctk.StringVar()
-		entry_nome = ctk.CTkEntry(frame, textvariable=nome_var, width=300)
-		entry_nome.grid(row=linha, column=0, pady=3, padx=12)
-		entry_valor = ctk.CTkEntry(frame, textvariable=valor_var, width=110)
+		
+		entry_nome = ctk.CTkEntry(frame, textvariable=nome_var, width=280, placeholder_text="Nome do ingrediente")
+		entry_nome.grid(row=linha, column=0, pady=3, padx=12, sticky="ew")
+		
+		entry_valor = ctk.CTkEntry(frame, textvariable=valor_var, width=100, placeholder_text="0.00")
 		entry_valor.grid(row=linha, column=1, pady=3, padx=12)
 		entry_valor.bind("<KeyRelease>", lambda e, p=prefixo: self._atualiza_total_secao(p))
-		botao_del = ctk.CTkButton(frame, text="X", width=32,
+		
+		botao_del = ctk.CTkButton(frame, text="X", width=32, fg_color="#ef4444", hover_color="#dc2626",
 					   command=lambda p=prefixo, l=linha: self._remove_item(p, l))
 		botao_del.grid(row=linha, column=2, padx=4)
 
 		self.vars[f"{prefixo}_itens"].append((linha, nome_var, valor_var))
 		self.vars[f"{prefixo}_linha"] = linha + 1
 		proxima_linha = self.vars[f"{prefixo}_linha"]
-		botao_add = ctk.CTkButton(frame, text="+", width=32,
+		botao_add = ctk.CTkButton(frame, text="+", width=32, fg_color="#3b82f6", hover_color="#2563eb",
 			       command=lambda p=prefixo: self._add_item(p))
 		botao_add.grid(row=proxima_linha, column=2, padx=4, pady=(4, 0))
 		self._atualiza_total_secao(prefixo)
