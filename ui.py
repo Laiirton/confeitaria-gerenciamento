@@ -10,40 +10,17 @@ class App(ctk.CTk):
 		ctk.set_default_color_theme("blue")
 		self.title("Calculadora de Custo de Bolos")
 		self.geometry("1100x720")
+		self.minsize(900, 600)
 		self.resizable(True, True)
 		self._build_widgets()
 		self.after(100, self._centralizar_janela)
 
 	def _build_widgets(self):
-		container = ctk.CTkFrame(self, corner_radius=0, fg_color="#020617")
-		container.pack(fill="both", expand=True)
-
-		self.canvas = ctk.CTkCanvas(container, bg="#020617", highlightthickness=0)
-		scrollbar = ctk.CTkScrollbar(container, orientation="vertical", command=self.canvas.yview)
-		self.canvas.configure(yscrollcommand=scrollbar.set)
-
-		scrollbar.pack(side="right", fill="y")
-		self.canvas.pack(side="left", fill="both", expand=True)
-
-		main = ctk.CTkFrame(self.canvas, corner_radius=0, fg_color="#020617")
-		self.canvas.create_window((0, 0), window=main, anchor="nw")
+		main = ctk.CTkFrame(self, corner_radius=0, fg_color="#020617")
+		main.pack(fill="both", expand=True)
 		main.grid_columnconfigure(0, weight=3)
 		main.grid_columnconfigure(1, weight=2)
-
-		def on_configure(event):
-			self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-
-		main.bind("<Configure>", on_configure)
-
-		def _on_mousewheel(event):
-			if event.num == 5 or event.delta < 0:
-				self.canvas.yview_scroll(1, "units")
-			elif event.num == 4 or event.delta > 0:
-				self.canvas.yview_scroll(-1, "units")
-
-		self.canvas.bind("<MouseWheel>", _on_mousewheel)
-		self.canvas.bind("<Button-4>", _on_mousewheel)
-		self.canvas.bind("<Button-5>", _on_mousewheel)
+		main.grid_rowconfigure(2, weight=1)
 
 		self.vars = {}
 
@@ -54,8 +31,21 @@ class App(ctk.CTk):
 				       font=("Segoe UI", 12))
 		descricao.grid(row=1, column=0, columnspan=2, sticky="w", padx=24, pady=(0, 20))
 
-		bloco_ingredientes = ctk.CTkFrame(main, corner_radius=16, fg_color="#0b1220")
-		bloco_ingredientes.grid(row=2, column=0, sticky="nsew", pady=(0, 16), padx=(24, 12))
+		container_ingredientes = ctk.CTkFrame(main, corner_radius=16, fg_color="#0b1220")
+		container_ingredientes.grid(row=2, column=0, sticky="nsew", pady=(0, 16), padx=(24, 12))
+		container_ingredientes.grid_rowconfigure(0, weight=1)
+		container_ingredientes.grid_columnconfigure(0, weight=1)
+		canvas = ctk.CTkCanvas(container_ingredientes, highlightthickness=0, bg="#0b1220")
+		canvas.grid(row=0, column=0, sticky="nsew")
+		barra_scroll = ctk.CTkScrollbar(container_ingredientes, orientation="vertical", command=canvas.yview)
+		barra_scroll.grid(row=0, column=1, sticky="ns")
+		canvas.configure(yscrollcommand=barra_scroll.set)
+		bloco_ingredientes = ctk.CTkFrame(canvas, corner_radius=16, fg_color="#0b1220")
+		canvas.create_window((0, 0), window=bloco_ingredientes, anchor="nw")
+		bloco_ingredientes.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+		def _on_mousewheel(ev):
+			canvas.yview_scroll(int(-1 * (ev.delta / 120)), "units")
+		canvas.bind_all("<MouseWheel>", _on_mousewheel)
 		bloco_ingredientes.grid_columnconfigure(0, weight=1)
 		bloco_ingredientes.grid_columnconfigure(1, weight=1)
 		bloco_ingredientes.grid_columnconfigure(2, weight=1)
@@ -153,16 +143,13 @@ class App(ctk.CTk):
 		self.vars[f"{prefixo}_itens"] = []
 		self.vars[f"{prefixo}_linha"] = 2
 
-		botao_add = ctk.CTkButton(frame, text="+", width=32,
-			       command=lambda p=prefixo: self._add_item(p))
-		botao_add.grid(row=1, column=3, padx=8)
-
 		total_var = ctk.StringVar()
 		self.vars[prefixo] = total_var
 		ctk.CTkLabel(frame, text="Total").grid(row=100, column=0, sticky="e", pady=(4, 10), padx=12)
 		ctk.CTkLabel(frame, textvariable=total_var).grid(row=100, column=1, sticky="w", pady=(4, 10))
 
-		self._add_item(prefixo)
+		for _ in range(4):
+			self._add_item(prefixo)
 
 	def _get_float(self, key, default=0.0):
 		value = self.vars[key].get().replace(",", ".").strip()
@@ -211,11 +198,14 @@ class App(ctk.CTk):
 		linha = self.vars.get(f"{prefixo}_linha", 2)
 		if frame is None:
 			return
+		for widget in frame.grid_slaves(row=linha):
+			if isinstance(widget, ctk.CTkButton) and widget.cget("text") == "+":
+				widget.destroy()
 		nome_var = ctk.StringVar()
 		valor_var = ctk.StringVar()
-		entry_nome = ctk.CTkEntry(frame, textvariable=nome_var, width=180)
+		entry_nome = ctk.CTkEntry(frame, textvariable=nome_var, width=300)
 		entry_nome.grid(row=linha, column=0, pady=3, padx=12)
-		entry_valor = ctk.CTkEntry(frame, textvariable=valor_var, width=90)
+		entry_valor = ctk.CTkEntry(frame, textvariable=valor_var, width=110)
 		entry_valor.grid(row=linha, column=1, pady=3, padx=12)
 		entry_valor.bind("<KeyRelease>", lambda e, p=prefixo: self._atualiza_total_secao(p))
 		botao_del = ctk.CTkButton(frame, text="X", width=32,
@@ -224,6 +214,10 @@ class App(ctk.CTk):
 
 		self.vars[f"{prefixo}_itens"].append((linha, nome_var, valor_var))
 		self.vars[f"{prefixo}_linha"] = linha + 1
+		proxima_linha = self.vars[f"{prefixo}_linha"]
+		botao_add = ctk.CTkButton(frame, text="+", width=32,
+			       command=lambda p=prefixo: self._add_item(p))
+		botao_add.grid(row=proxima_linha, column=2, padx=4, pady=(4, 0))
 		self._atualiza_total_secao(prefixo)
 
 	def _atualiza_total_secao(self, prefixo):
